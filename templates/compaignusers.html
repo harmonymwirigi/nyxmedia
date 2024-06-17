@@ -5,14 +5,14 @@
 {% endblock %}
 
 
-   
-   
-    
+
+
+
                                             <!-- /# sidebar -->
                                             {% block content %}
                                             <aside class="lg-side">
                                                 <div class="inbox-head">
-                                                    <a href="http://127.0.0.1:5000/auth/register/{{url}}" target="_blank">http://127.0.0.1:5000/auth/register/{{url}} </a>
+                                                    <a href="https://nyxmedia-tonirodriguez.pythonanywhere.com//auth/register/{{url}}" target="_blank">https://nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{url}} </a>
                                                     <form action="#" class="pull-right position">
                                                         <div class="input-append inner-append">
                                                             <input type="text" class="sr-input" placeholder="Search Mail">
@@ -21,19 +21,19 @@
                                                     </form>
                                                 </div>
                                                 <div class="mail-option">
-                                                    
 
-                                                    
-                                                    
-                                                    
 
-                                                    
+
+
+
+
+
                                                 </div>
                                                 <div class="table-responsive">
                                                     <table class="table table-inbox table-hover table-responsive">
                                                         <tr class="unread">
-                                                           
-                                                           
+
+
                                                             <th class="view-message">Email</th>
                                                             <th class="view-message  dont-show">Amount</th>
                                                             <th class="view-message  dont-show">Action</th>
@@ -41,12 +41,12 @@
                                                         <tbody>
                                                             {% for user in users %}
                                                             <tr class="unread">
-                                                              
-                                                                
+
+
                                                                 <td class="view-message">{{ user.email }}</td>
                                                                 <td class="view-message  dont-show">${{ user.amount }}</td>
                                                                 <td class="view-message  dont-show"><a class="btn btn-success"><i class="fa fa-eye"></i>view</a></td>
-                                                            </tr> 
+                                                            </tr>
                                                             {% endfor %}
                                                         </tbody>
                                                     </table>
@@ -54,4 +54,3 @@
 
                                             </aside>
                                             {% endblock %}
-                                       

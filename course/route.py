@@ -57,7 +57,7 @@ def send_email(recipient, subject, body):
             .body {{
                 font-size: 16px;
                 line-height: 1.5;
-                
+
             }}
             .footer {{
                 font-size: 14px;
@@ -74,7 +74,7 @@ def send_email(recipient, subject, body):
     <body>
         <div class="email-container">
             <div class="header">
-                Animal news of Dogs 
+                Animal news of Dogs
             </div>
             <img src="/static/images/periodico.png" height="100px" width="90px">
             <br>
@@ -82,7 +82,7 @@ def send_email(recipient, subject, body):
             <div class="body">
             {body}
             <div class="footer">
-                
+
                 <p class="footer-content">&copy; 2024 Your Company. All rights reserved.</p>
             </div>
         </div>
@@ -110,28 +110,28 @@ def dashboard(course):
     keyform = OpenAiform()
     compainform = CourseForm()
     email = current_user.email
-    
-    
-    
+
+
+
     if form.validate_on_submit():
         # This block will execute when the form is submitted and all fields pass validation
         # Access form data using form.field_name.data
         header = form.Header.data
         body = form.body.data
         footer = form.footer.data
-        
+
         # Create a new EmailTemplate instance
         email_template = EmailTemplate(header=header, body=body, footer=footer, owner_id = current_user.id, compaign = course)
         # Add the new EmailTemplate instance to the database session
         db.session.add(email_template)
         # Commit the changes to the database
         db.session.commit()
-       
+
         return redirect(url_for('courses.dashboard', compaign = course))  # Redirect to the dashboard to clear the form
     else:
         # Handle form validation failure as before
         pass
-    
+
     email_templates = EmailTemplate.query.filter_by(owner_id=current_user.id, compaign=course).all()
     courses = Course.query.filter_by(owner_id=current_user.id).all()
     this_campaign = Course.query.filter_by(id=course).first()
@@ -142,19 +142,19 @@ def dashboard(course):
         color = "#fffff"
     code = this_campaign.url
     compaign_id = course
-    db.session.commit() 
-    
-    
-    return render_template('compaigndashboard.html', 
-                           formu=form, 
-                           email_templates=email_templates, 
-                           tempform=tempform, 
-                           email=email, 
-                           keyform=keyform, 
-                           compainform=compainform, 
-                           courses=courses, 
+    db.session.commit()
+
+
+    return render_template('compaigndashboard.html',
+                           formu=form,
+                           email_templates=email_templates,
+                           tempform=tempform,
+                           email=email,
+                           keyform=keyform,
+                           compainform=compainform,
+                           courses=courses,
                            compaign_id=compaign_id,
-                           customizeform = customizeform, 
+                           customizeform = customizeform,
                            check_key=check_key,
                            url = code,
                            color = color,
@@ -187,7 +187,7 @@ def users(id):
     keyform=OpenAiform()
     compainform = CourseForm()
     compaign_id =id
-    users =  User.query.filter_by(course_id = id).all()
+    users =  User.query.filter_by(course_id = id, status =2).all()
     this_campaign = Course.query.filter_by(id=id).first()
     courses = Course.query.filter_by(owner_id=current_user.id).all()
     code = this_campaign.url
@@ -198,7 +198,7 @@ def users(id):
     check_key = this_campaign.stripe_api_key
     return render_template('compaignusers.html',
                            active_compaign_id=int(id),
-                           url = code, 
+                           url = code,
                            users = users,
                            compaign_id=compaign_id,
                            check_key =check_key,
@@ -214,8 +214,12 @@ def config(id):
     form = OpenAiform()
     if form.validate_on_submit():
         key = form.key.data
+        endpoint_secret = form.endpoint_secret.data
+        product_id = form.product_id.data
         compain = Course.query.filter_by(id = id).first()
         compain.stripe_api_key = key
+        compain.product_id = product_id
+        compain.endpoint_secret = endpoint_secret
         db.session.commit()  # Save the changes to t
         return redirect(url_for('courses.dashboard', course = id))
 
@@ -244,7 +248,7 @@ def generate_email_body(compaign):
         )
     response_text = completion.choices[0].text
 
-    
+
    # Fetch users from the database whose status is 2
     users = User.query.filter_by(status=1).all()
 
@@ -258,5 +262,5 @@ def generate_email_body(compaign):
     # Redirect to the dashboard
     return redirect(url_for('users.dashboard'))
 
-    
- 
+
+

@@ -16,6 +16,8 @@ class Course(db.Model,UserMixin):
     courselink = db.Column(db.String(200), nullable = True)
     sender_email = db.Column(db.String(200), nullable = True)
     sender_password = db.Column(db.String(200), nullable = True)
+    product_id = db.Column(db.String(255), nullable=True)
+    endpoint_secret = db.Column(db.String(255), nullable=True)
 
     def __repr__(self):
         return f"<compain(name='{self.name}'"

@@ -9,6 +9,8 @@ class Generateform(FlaskForm):
 
 class OpenAiform(FlaskForm):
     key = StringField('Stripe Api Key', validators=[DataRequired()])
-    
+    product_id = StringField('Product Id', validators=[DataRequired()])
+    endpoint_secret = StringField('Endpoint Secret', validators=[DataRequired()])
+
 class CourseForm(FlaskForm):
     name = StringField('Course Title', validators=[DataRequired()])

@@ -13,12 +13,15 @@ from email.mime.image import MIMEImage
 from email.utils import make_msgid
 from flask import session
 import requests
+import json
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from flask_login import login_user, logout_user, login_required
-# key = "sk_test_51OtZ2hDpVKhl93DHLGLN7FPuPSv5IfqG9AkkWFiosqVTI9cdbOzurfnv4TTXCKSNEzaBvZj7grXWEr9zeHPvlJpi00XA0mbCoc"
-product = "prod_Pk06dC0dgMFlxX"
 # This is your Stripe CLI webhook secret for testing your endpoint locally.
-endpoint_secret = 'whsec_3Uf3IfhgGnrsIKaRWYMAprcarSaV7ASZ'
+
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -38,7 +41,7 @@ def send_email(recipient, subject, body):
     message['Subject'] = subject
 
     # Define the HTML content of the email
-    cid = make_msgid()
+    image_url = 'https://nyxmedia-tonirodriguez.pythonanywhere.com/static/images/nyx_logo.jpeg'
     html_content = f"""
     <html>
     <head>
@@ -81,7 +84,7 @@ def send_email(recipient, subject, body):
             <div class="header">
                nyxmedia/payments courses
             </div>
-            <img src="cid:{cid[1:-1]}" alt="Logo" height="100" width="100">
+            <img src="{image_url}" alt="Logo" height="100" width="100">
             <br>
             <br>
             <div class="body">
@@ -99,16 +102,6 @@ def send_email(recipient, subject, body):
     # Attach the email body as HTML
     message.attach(MIMEText(html_content, 'html'))
 
-    # Download the image from the URL
-    image_url = 'https://4974-102-219-208-254.ngrok-free.app/static/images/nyx_logo.jpeg'
-    response = requests.get(image_url)
-    img_data = response.content
-
-    # Attach the image to the email
-    image = MIMEImage(img_data, name='logo.png')
-    image.add_header('Content-ID', cid)
-    message.attach(image)
-
     # Connect to the SMTP server and send the email
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         server.starttls()
@@ -116,16 +109,13 @@ def send_email(recipient, subject, body):
         server.send_message(message)
 
 
-def create_customer(email, key):
-    # Initialize the Stripe API with your secret key
-    stripe.api_key = key
-
-    # Create a customer
+def create_customer(email, stripe_api_key):
+    stripe.api_key = stripe_api_key
     customer = stripe.Customer.create(
-        email=email,
+        email=email
     )
-
     return customer.id
+
 def create_default_price_and_update_product(product_id, unit_amount, key):
     try:
         # Initialize the Stripe API with your secret key
@@ -148,98 +138,129 @@ def create_default_price_and_update_product(product_id, unit_amount, key):
     except stripe.error.StripeError as e:
         print("Stripe Error:", e)
         return None
-
-def create_checkout_session(success_url, price_id, api_key, customer=None, quantity=1):
+def create_checkout_session(course_id, created_price_id, customer, success_url, stripe_api_key, quantity=1):
+    stripe.api_key = stripe_api_key
     try:
-        # Initialize the Stripe API with your secret key
-        stripe.api_key = api_key
-
-        # Create a checkout session
         session = stripe.checkout.Session.create(
+            payment_intent_data={'metadata': {'course_id': course_id}},
             success_url=success_url,
-            payment_method_types=["card"],
-            line_items=[{"price": price_id, "quantity": quantity}],
-            mode="payment",
-            customer=customer  # Optionally associate the session with a customer
+            mode='payment',
+            payment_method_types=['card'],
+            customer=customer,
+            line_items=[{
+                'price': created_price_id,
+                'quantity': quantity,
+            }]
         )
-
-        return session.url  # Return the URL of the created checkout session
-    except stripe.error.StripeError as e:
-        print("Stripe Error:", e)
+        return session.url
+    except Exception as e:
+        print(f"Error creating Checkout Session: {e}")
         return None
+
+
+
+
+
+def create_payment_intent(amount, currency, customer_id, course_id, stripe_api_key):
+    stripe.api_key = stripe_api_key
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency=currency,
+            customer=customer_id,
+            metadata={'course_id': course_id}
+        )
+        return intent
+    except Exception as e:
+        print(f"Error creating Payment Intent: {e}")
+        return None
+
 
 
 # Define a Flask Blueprint named 'auth_bp'
 auth_bp = Blueprint('auth', __name__)
 
 
-
 @auth_bp.route('/webhook', methods=['POST'])
-def webhook():
+def handle_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+
     event = None
-    payload = request.data
-    sig_header = request.headers['STRIPE_SIGNATURE']
 
-    if request.method == "POST":
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, endpoint_secret
-            )
-        except ValueError as e:
-            # Invalid payload
-            raise e
-        except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
-            raise e
+    try:
+        # Parse the event first to extract metadata
+        event = json.loads(payload)
 
-        # Handle the event
-        if event['type'] == 'account.updated':
-            account = event['data']['object']
-        elif event['type'] == 'account.external_account.created':
-            external_account = event['data']['object']
-        elif event['type'] == 'account.external_account.deleted':
-            external_account = event['data']['object']
-        elif event['type'] == 'account.external_account.updated':
-            external_account = event['data']['object']
-        elif event['type'] == 'balance.available':
-            balance = event['data']['object']
-        elif event['type'] == 'billing_portal.configuration.created':
-            configuration = event['data']['object']
-        elif event['type'] == 'billing_portal.configuration.updated':
-            configuration = event['data']['object']
-        elif event['type'] == 'billing_portal.session.created':
-            session = event['data']['object']
-        elif event['type'] == 'capability.updated':
-            capability = event['data']['object']
-        elif event['type'] == 'cash_balance.funds_available':
-            cash_balance = event['data']['object']
-        elif event['type'] == 'charge.captured':
-            charge = event['data']['object']
-        elif event['type'] == 'charge.expired':
-            charge = event['data']['object']
-        elif event['type'] == 'payment_intent.succeeded':
-            payment_intent = event['data']['object']
-            paymentintent_id = payment_intent['id']
-            customer = payment_intent['customer']
-            amount = payment_intent['amount_received'] / 10000
-            
-            try:
-                # Assuming you have a Payments model with appropriate fields
-                payment = User.query.filter_by(customer_id=customer).first()
-                
-                if payment:
-                    payment.payment_intent_id = paymentintent_id
-                    payment.amount = amount
-                    payment.status = 2
-                    course = Course.query.filter_by(id = payment.course_id).first()
-                     # send link via the email
-                    send_email(payment.email, "Course Subscription", course.courselink) 
-                    db.session.commit()
-            except Exception as e:
-                # Handle database update error
-                print("Database update error:", e)
-           
-        return jsonify(success=True)
+        # Extract course_id from the event's metadata
+        course_id = event['data']['object']['metadata']['course_id']
+
+        # Retrieve the course and its endpoint secret
+        course = Course.query.get(course_id)
+        if not course:
+            abort(404, description="Course not found")
+
+        endpoint_secret = course.endpoint_secret
+
+        # Verify the payload
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        print(f"Invalid payload: {e}")
+        abort(400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        print(f"Invalid signature: {e}")
+        abort(400)
+    except KeyError as e:
+        # Missing required metadata
+        print(f"Missing metadata: {e}")
+        abort(400)
+
+    # Process the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_session(session)
+    elif event['type'] == 'payment_intent.succeeded':
+        session = event['data']['object']
+        handle_payment_intent_succeeded(session)
+    else:
+        print(f"Unhandled event type {event['type']}")
+
+    return '', 200
+
+
+
+def handle_checkout_session(session):
+    # Implement your logic to handle the checkout session
+    print(f"Checkout session completed: {session}")
+    # For example, update user status, send email, etc.
+
+def handle_payment_intent_succeeded(payment_intent):
+    # Extract necessary information from payment_intent
+    payment_intent_id = payment_intent['id']
+    customer = payment_intent['customer']
+    amount = payment_intent['amount_received'] / 100  # Convert amount to dollars
+
+    try:
+        # Assuming you have a Payments model with appropriate fields
+        payment = User.query.filter_by(customer_id=customer).first()
+        course = Course.query.filter_by(id=payment.course_id).first()
+        if payment:
+            payment.payment_intent_id = payment_intent_id
+            payment.amount = amount
+            payment.status = 2  # Assuming '2' represents a successful payment status
+            db.session.commit()
+            send_email(payment.email, 'Course Subscription', course.courselink)
+    except Exception as e:
+        # Handle database update error
+        print("Database update error:", e)
+
+
+
+
 
 @auth_bp.route("/termsandconditions")
 def termsandconditions():
@@ -256,9 +277,9 @@ def login():
             # Check if the password is correct
             # print(user.check_password(form.password.data))
             if user.password ==form.password.data:
-                
+
                     login_user(user)
-                    
+
                     # If the user is an admin, redirect to the admin dashboard
                     return redirect(url_for('users.dashboard'))
                       # Replace 'admin.dashboard' with the appropriate endpoinT
@@ -268,7 +289,7 @@ def login():
         else:
             print('User does not exist. Please try again.')
             flash('User does not exist. Please try again.', 'danger')
-    
+
     # Render the login template with the login form
     return render_template('login.html', form=form )
 
@@ -287,51 +308,75 @@ def logout():
 def register(code):
     course = Course.query.filter_by(url=code).first()
     if not course:
-        return redirect(url_for('auth.error', type= 2))
+        return redirect(url_for('auth.error', type=2))
+
     colo = course.color
     title = course.title
     price = course.price
+    product = course.product_id
     key = course.stripe_api_key
-    amount = price*100 
-    link = course.courselink
+    amount = int(round(price * 100))  # Ensure amount is an integer
+    # link = course.courselink
     form = RegistrationForm()
+
     if form.validate_on_submit():
-        # check if the email is register in this compaign
         # Check if the email is already registered in this campaign
         existing_user = User.query.filter_by(email=form.email.data, course_id=course.id).first()
-        # if it exist redirect to the error message
         if existing_user:
-            return redirect(url_for('auth.error', type= 1))
-        # it does not exist continue with the registration
-        created_customer = create_customer(form.email.data, key)
-        
-        unit_amount = int(amount) # Replace with your desired unit amount in cents
-        created_price_id = create_default_price_and_update_product(product, unit_amount, key)
-        # Example usage:
-        success_url = "http://ec2-43-204-130-254.ap-south-1.compute.amazonaws.com/auth/success"
+            return redirect(url_for('auth.error', type=1))
 
-        
+        try:
+            # Log steps to track progress
+            print("Creating Stripe customer...")
+            created_customer = create_customer(form.email.data, key)
 
-        quantity = 1  # Optional, default is 1
-        checkout_session_url = create_checkout_session(success_url, created_price_id,key,customer=created_customer, quantity=quantity)
-        new_user = User(
-            email=form.email.data,
-            customer_id= created_customer,
-            amount = unit_amount, 
-            status= 1,
-            course_id = course.id
-                # Store the hashed password in the database
-        )
-       
-        
-        # Add the new user to the database session
-        db.session.add(new_user)
-        # Commit changes to the database
-        db.session.commit()
-        # Redirect to the login page after successful registration
-        return redirect(checkout_session_url)
+            created_price_id = create_default_price_and_update_product(product, amount, key)
+
+            # Create a Payment Intent
+
+
+            # Define success and cancel URLs
+            success_url = url_for('auth.success', _external=True)
+
+            # Create a Checkout Session
+            print("Creating Checkout Session...")
+            checkout_session_url = create_checkout_session(course.id, created_price_id, created_customer, success_url, key, quantity=1)
+            if not checkout_session_url:
+                print("Failed to create Checkout Session")
+                return redirect(url_for('auth.error', type=3))
+            print(f"Created Checkout Session URL: {checkout_session_url}")
+
+            # Add the new user to the database session
+            print("Adding new user to the database...")
+            new_user = User(
+                email=form.email.data,
+                customer_id=created_customer,
+                amount=amount,
+                status=1,
+                course_id=course.id
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            print("New user added to the database.")
+
+            # Redirect to the checkout session URL after successful registration
+            return redirect(checkout_session_url)
+        except Exception as e:
+            # Log the exception and handle it appropriately
+            print(f"Error during registration: {e}")
+            return redirect(url_for('auth.error', type=3))
+    else:
+        # Log form errors for debugging
+        print("Form validation failed. Errors:", form.errors)
+
     # Render the registration form template
-    return render_template('register.html', form=form, color = colo,title = title, code = code)
+    return render_template('register.html', form=form, color=colo, title=title, code=code)
+
+
+
+
+
+
 
 @auth_bp.route('/admin_register', methods=['GET', 'POST'])
 def register_admin():

@@ -23,7 +23,7 @@
     <link href="/static/css/lib/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/lib/Unix.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
-    
+
     <!-- Additional CSS specific to the child template -->
     {% block additional_css %}{% endblock %}
 </head>
@@ -38,7 +38,7 @@
                         <a href="{{ url_for('courses.dashboard', course=course.id) }}" class="btn btn-success campaign-link" data-course-id="{{ course.id }}" onclick="changeButtonColor({{ course.id }})">{{ course.name }}</a>
                     {% endfor %}
                 {% endif %}
-                  
+
                 </div>
                 <div> {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -80,7 +80,7 @@
                                         <div class="mail-box">
     <aside class="sm-side">
         <div class="user-head">
-            
+
             <div >
                 <h5><a class="text-white" href="#">Admin</a></h5>
                 <span><a href="#">{{ email }}</a></span>
@@ -131,12 +131,12 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    
+
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-flat m-b-30 m-t-30">Submit</button>
                             </form>
                         </div>
-                        
+
                     </div>
                     <!-- /.modal-content -->
                 </div>
@@ -152,7 +152,7 @@
                             <h4 class="modal-title">Open Ai Key</h4>
                         </div>
                         <div class="modal-body">
-                            <form action="{{ url_for('users.config') }}" method="POST">
+                            <form action="{{ url_for('courses.config', id=compaign_id) }}" method="POST">
                                 {{ keyform.hidden_tag() }} <!-- Add CSRF token field for security -->
                                 <div class="form-group">
                                     {{ keyform.key.label(class="col-lg-2 control-label") }}
@@ -163,11 +163,29 @@
                                         {% endfor %}
                                     </div>
                                 </div>
-                               
+                                <div class="form-group">
+                                    {{ keyform.product_id.label(class="col-lg-2 control-label") }}
+                                    <div class="col-lg-10">
+                                        {{ keyform.product_id(class="form-control", placeholder="") }}
+                                        {% for error in keyform.product_id.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    {{ keyform.endpoint_secret.label(class="col-lg-2 control-label") }}
+                                    <div class="col-lg-10">
+                                        {{ keyform.endpoint_secret(class="form-control", placeholder="") }}
+                                        {% for error in keyform.endpoint_secret.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
                                 <button type="submit" class="btn btn-primary btn-flat m-b-30 m-t-30">Submit</button>
                             </form>
                         </div>
-                        
+
                     </div>
                     <!-- /.modal-content -->
                 </div>
@@ -186,7 +204,7 @@
                             <form action="{{ url_for('users.addcourse') }}" method="POST">
                                 {{ compainform.hidden_tag() }} <!-- Add CSRF token field for security -->
                                 <div class="form-group">
-                                   
+
                                     {{ compainform.name.label(class="col-lg-2 control-label") }}
                                     <div class="col-lg-10">
                                         {{ compainform.name(class="form-control", placeholder="") }}
@@ -195,11 +213,11 @@
                                         {% endfor %}
                                     </div>
                                 </div>
-                               
+
                                 <button type="submit" class="btn btn-primary btn-flat m-b-30 m-t-30">Submit</button>
                             </form>
                         </div>
-                        
+
                     </div>
                     <!-- /.modal-content -->
                 </div>
@@ -213,10 +231,10 @@
 
                     {% set num_templates = email_templates|length %}
                     {% if num_templates > 0 %}
-    
+
 {{ num_templates }}
 {% else %}
-0    
+0
     {% endif %}
                 </span></a>
             </li>
@@ -226,28 +244,28 @@
 
                         {% set num_users = users|length %}
                         {% if num_users > 0 %}
-        
+
     {{ num_users }}
-        
+
         {% endif %}
                     </span>
                 </a>
             </li>
             <li>
                 <!-- {% if current_user.openai_key == None  %}
-                 <a  style="width: auto;height: auto;"> Config</a> 
-                
+                 <a  style="width: auto;height: auto;"> Config</a>
+
                 <a href="#configmodal"  data-toggle="modal" title="Compose"><i class="fa fa-wrench"></i>
                     Config</a>
                 {% else %}
                 <a href="#configmodal"  data-toggle="modal" title="Compose" ><i class="fa fa-edit"></i> Update</a>
                 {% endif %} -->
             </li>
-           
-          
+
+
         </ul>
-       
-        
+
+
 
         <!-- <div class="inbox-body text-center">
             <div class="btn-group">
@@ -268,10 +286,10 @@
         </div> -->
 
     </aside>
-  
+
 
         {% block content %}{% endblock %}
-    
+
 </div>
 </div>
 </div>
@@ -314,8 +332,8 @@
     <script src="/static/js/scripts.js"></script>
     <!-- Additional JS specific to the child template -->
     {% block additional_js %}
-    
-    
+
+
     {% endblock %}
 </body>
 

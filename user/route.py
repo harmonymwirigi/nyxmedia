@@ -38,12 +38,12 @@ def dashboard():
         db.session.add(email_template)
         # Commit the changes to the database
         db.session.commit()
-       
+
         return redirect(url_for('users.dashboard'))  # Redirect to the dashboard to clear the form
     else:
         # This block will execute when the form validation fails
         print('Form validation failed. Please ches.', 'error')  # Flash an error message
-    
+
      # Fetch all EmailTemplate instances from the database
     email_templates = EmailTemplate.query.filter_by(owner_id = current_user.id, compaign = None).all()
     courses = Course.query.filter_by(owner_id = current_user.id).all()
@@ -87,14 +87,14 @@ def config():
         current_user.openai_key = key
         db.session.commit()  # Save the changes to t
         return redirect(url_for('users.dashboard'))
-    
+
 def generate_code():
     # Generate a random 8-digit code
     code = str(secrets.randbelow(10**8)).zfill(8)
-    
+
     # Encrypt the code using SHA-256
     encrypted_code = hashlib.sha256(code.encode()).hexdigest()
-    
+
     return encrypted_code[:8]  # Return the first 8 characters of the encrypted code
 
 # Example usage:
@@ -108,7 +108,7 @@ def addcourse():
     form = CourseForm()
 
 # Commit the changes to persist the deletion
-    
+
     if  form.validate_on_submit():
         name = form.name.data
         while True:
@@ -117,7 +117,7 @@ def addcourse():
 
             # Check if the URL code already exists in the database
             existing_compaign = db.session.query(Course).filter_by(url=url).first()
-            
+
             # If the URL code doesn't exist, break out of the loop
             if not existing_compaign:
                 break
@@ -158,7 +158,7 @@ def generate_email_body():
         )
     response_text = completion.choices[0].text
 
-    
+
    # Fetch users from the database whose status is 2
     users = User.query.filter_by(status=2).all()
 
@@ -172,7 +172,7 @@ def generate_email_body():
     # Redirect to the dashboard
     return redirect(url_for('users.dashboard'))
 
-    
+
 
 @user_bp.route('/users')
 @login_required
@@ -180,5 +180,5 @@ def users():
     form = Emailstemplate()
     keyform=OpenAiform()
     compainform = CourseForm()
-    users =  User.query.all()
+    users =  User.query.filter_by(status=2).all()
     return render_template('users.html', users = users, formu = form,keyform=keyform, compainform = compainform)
