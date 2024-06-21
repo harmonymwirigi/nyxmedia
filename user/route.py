@@ -111,6 +111,7 @@ def addcourse():
 
     if  form.validate_on_submit():
         name = form.name.data
+        type = form.type.data
         while True:
     # Generate a new URL code
             url = generate_code()
@@ -123,6 +124,7 @@ def addcourse():
                 break
         compain = Course (
             name = name,
+            type = type,
             owner_id = current_user.id,
             url = url
         )

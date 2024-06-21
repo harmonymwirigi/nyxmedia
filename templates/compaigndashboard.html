@@ -12,7 +12,7 @@
                                             {% block content %}
                                             <aside class="lg-side">
                                                 <div class="inbox-head">
-                                                    <a href="https://nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{url}}" target="_blank">https://nyxmedia-tonirodriguez.pythonanywhere.com//auth/register/{{url}} </a>
+                                                    <a href="http://127.0.0.1:5000/auth/register/{{url}}" target="_blank">https://nyxmedia-tonirodriguez.pythonanywhere.com//auth/register/{{url}} </a>
                                                     <form action="#" class="pull-right position">
 
                                                         <div class="input-append inner-append">
@@ -47,7 +47,7 @@
                                                                 <td class="view-message">{{ email_template.body }}</td>
                                                                 <td class="view-message dont-show">{{ email_template.footer }}</td>
                                                                 <td class="view-message dont-show">
-                                                                    <form action="{{ url_for('compaigns.generate_email_body', compaign=compaign_id) }}" method="post">
+                                                                    <form  method="post" action="{{ url_for('courses.generate_email_body', compaign=compaign_id) }}">
                                                                         {{ tempform.hidden_tag() }}
                                                                         <input type="hidden" name="template_id" value="{{ email_template.id }}">
                                                                         <button type="submit" class="btn btn-success">Generate Email</button>

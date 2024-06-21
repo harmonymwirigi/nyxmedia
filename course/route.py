@@ -33,6 +33,7 @@ def send_email(recipient, subject, body):
     message['Subject'] = subject
 
     # Define the HTML content of the email
+    image_url = 'https://nyxmedia-tonirodriguez.pythonanywhere.com/static/images/nyx_logo.jpeg'
     html_content = f"""
     <html>
     <head>
@@ -57,7 +58,6 @@ def send_email(recipient, subject, body):
             .body {{
                 font-size: 16px;
                 line-height: 1.5;
-
             }}
             .footer {{
                 font-size: 14px;
@@ -74,16 +74,17 @@ def send_email(recipient, subject, body):
     <body>
         <div class="email-container">
             <div class="header">
-                Animal news of Dogs
+               nyxmedia news! 
             </div>
-            <img src="/static/images/periodico.png" height="100px" width="90px">
+            <img src="{image_url}" alt="Logo" height="100" width="100">
             <br>
             <br>
             <div class="body">
+            Es un placer saludarle, desde Nyx esperamos que disfrute de su compra, clique en el siguiente enlace para ver el contenido:
+            <br>
             {body}
             <div class="footer">
-
-                <p class="footer-content">&copy; 2024 Your Company. All rights reserved.</p>
+                <p class="footer-content">&copy; 2024 nyxmedia/payments. All rights reserved.</p>
             </div>
         </div>
     </body>
@@ -127,7 +128,7 @@ def dashboard(course):
         # Commit the changes to the database
         db.session.commit()
 
-        return redirect(url_for('courses.dashboard', compaign = course))  # Redirect to the dashboard to clear the form
+        return redirect(url_for('courses.dashboard', course = course))  # Redirect to the dashboard to clear the form
     else:
         # Handle form validation failure as before
         pass
@@ -157,6 +158,7 @@ def dashboard(course):
                            customizeform = customizeform,
                            check_key=check_key,
                            url = code,
+                           this_campaign = this_campaign,
                            color = color,
                            active_compaign_id=int(course))  # Pass active_compaign_id to the template
 
@@ -177,6 +179,7 @@ def customize(campaign):
         customize.courselink = link
         db.session.commit()
         return redirect(url_for('courses.dashboard',course = campaign))
+
 
 
 @courses.route('/<id>/users')
@@ -200,6 +203,7 @@ def users(id):
                            active_compaign_id=int(id),
                            url = code,
                            users = users,
+                           this_campaign = this_campaign,
                            compaign_id=compaign_id,
                            check_key =check_key,
                            courses=courses,
@@ -216,10 +220,12 @@ def config(id):
         key = form.key.data
         endpoint_secret = form.endpoint_secret.data
         product_id = form.product_id.data
+        openai_key = form.openai_key.data
         compain = Course.query.filter_by(id = id).first()
         compain.stripe_api_key = key
         compain.product_id = product_id
         compain.endpoint_secret = endpoint_secret
+        compain.openai_key = openai_key
         db.session.commit()  # Save the changes to t
         return redirect(url_for('courses.dashboard', course = id))
 
@@ -231,7 +237,7 @@ def generate_email_body(compaign):
     template_id = int(request.form.get('template_id'))  # Convert to integer
     compain = Course.query.filter_by(id = compaign).first()
     # Provide your OpenAI API key here
-    api_key = compain.open_api_key
+    api_key = compain.openai_key
 
     client = OpenAI(api_key=api_key)
 
@@ -239,7 +245,7 @@ def generate_email_body(compaign):
     # Replace this with your actual database retrieval logic
     email_template = retrieve_email_template_from_database(template_id)
     # Construct prompt for OpenAI API instructing to generate an email with specific parts
-    prompt = f"Generate an email with the following parts:\n\nHeader: {email_template.header}\n\nBody: {email_template.body}\n\nFooter: {email_template.footer}"
+    prompt = f"Generate an email with the following parts:\n\nHeader: {email_template.header}\n\nBody: {email_template.body}\n\nFooter: {email_template.footer}. My company name is nyx media no social media at the moment also don't insert any name"
     completion = client.completions.create(
             model="gpt-3.5-turbo-instruct",
             prompt=prompt,
@@ -250,7 +256,7 @@ def generate_email_body(compaign):
 
 
    # Fetch users from the database whose status is 2
-    users = User.query.filter_by(status=1).all()
+    users = User.query.filter_by(status=2).all()
 
     # Send the generated email to each user
     for user in users:

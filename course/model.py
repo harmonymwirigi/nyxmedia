@@ -5,7 +5,9 @@ class Course(db.Model,UserMixin):
     __tablename__ = 'course'
 
     id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.Integer, nullable = True)
     name = db.Column(db.String(255), nullable=True)
+    openai_key = db.Column(db.String(500), nullable=True)
     stripe_api_key = db.Column(db.String(255), nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('adminuser.id'))
     users = db.relationship('User', backref='subscribers')

@@ -253,7 +253,8 @@ def handle_payment_intent_succeeded(payment_intent):
             payment.amount = amount
             payment.status = 2  # Assuming '2' represents a successful payment status
             db.session.commit()
-            send_email(payment.email, 'Course Subscription', course.courselink)
+            if course.type != 1:
+                send_email(payment.email, 'Course Subscription', course.courselink)
     except Exception as e:
         # Handle database update error
         print("Database update error:", e)

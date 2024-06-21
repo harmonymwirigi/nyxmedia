@@ -62,7 +62,7 @@
                         <div class="page-header">
                             <div class="page-title">
                                 <ol class="breadcrumb text-right">
-                                   <a class="btn btn-primary" href="#coursemodal"  data-toggle="modal">Add Course</a>
+                                   <a class="btn btn-primary" href="#coursemodal"  data-toggle="modal">Add Item</a>
                                     <a href="{{ url_for('auth.logout') }}">Log Out</a>
                                 </ol>
                             </div>
@@ -198,11 +198,21 @@
                     <div class="modal-content text-left">
                         <div class="modal-header">
                             <button aria-hidden="true" data-dismiss="modal" class="close" type="button"><i class="ti-close"></i></button>
-                            <h4 class="modal-title">course Name</h4>
+                            <h4 class="modal-title">Add Item</h4>
                         </div>
                         <div class="modal-body">
                             <form action="{{ url_for('users.addcourse') }}" method="POST">
                                 {{ compainform.hidden_tag() }} <!-- Add CSRF token field for security -->
+                                <div class="form-group">
+
+                                    {{ compainform.type.label(class="col-lg-2 control-label") }}
+                                    <div class="col-lg-10">
+                                        {{ compainform.type(class="form-control", placeholder="") }}
+                                        {% for error in compainform.type.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                                 <div class="form-group">
 
                                     {{ compainform.name.label(class="col-lg-2 control-label") }}

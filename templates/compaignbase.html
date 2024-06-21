@@ -70,7 +70,7 @@
                         <div class="page-header">
                             <div class="page-title">
                                 <ol class="breadcrumb text-right">
-                                   <a class="btn btn-primary" href="#compaignmodal"  data-toggle="modal">Add Course</a>
+                                   <a class="btn btn-primary" href="#compaignmodal"  data-toggle="modal">Add Item</a>
                                     <a href="{{ url_for('auth.logout') }}">Log Out</a>
                                 </ol>
                             </div>
@@ -92,10 +92,19 @@
             <div >
                 <h5><a class="text-white" href="#">Admin</a></h5>
                 <span><a href="#">{{ email }}</a></span>
+                {{ this_campaign.type }}
             </div>
         </div>
         <div class="inbox-body text-center">
+            {% if this_campaign.type == 1%}
+            {% if check_key == None  %}
+            <p class="text-white">Kindly Configure Your Open API Key to conposes email template</p>
 
+            {% else %}
+            <a href="#myModal" data-toggle="modal" title="Compose" class="btn btn-compose"> Compose</a>
+            <!-- Modal -->
+            {% endif %}
+            {% endif %}
             <div aria-hidden="true" role="dialog" tabindex="-1" id="myModal" class="modal fade">
                 <div class="modal-dialog">
                     <div class="modal-content text-left">
@@ -153,7 +162,7 @@
                     <div class="modal-content text-left">
                         <div class="modal-header">
                             <button aria-hidden="true" data-dismiss="modal" class="close" type="button"><i class="ti-close"></i></button>
-                            <h4 class="modal-title">Stripe Api Key</h4>
+                            <h4 class="modal-title">Configuration Details</h4>
                         </div>
                         <div class="modal-body">
                             <form action="{{ url_for('courses.config', id=compaign_id) }}" method="POST">
@@ -185,6 +194,17 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                {% if this_campaign.type == 1%}
+                                <div class="form-group">
+                                    {{ keyform.openai_key.label(class="col-lg-2 control-label") }}
+                                    <div class="col-lg-10">
+                                        {{ keyform.openai_key(class="form-control", placeholder="") }}
+                                        {% for error in keyform.openai_key.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
 
                                 <button type="submit" class="btn btn-primary btn-flat m-b-30 m-t-30">Submit</button>
                             </form>
@@ -233,15 +253,17 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                {% if this_campaign.type != 1%}
                                 <div class="form-group">
                                     {{ customizeform.link.label(class="col-lg-2 control-label") }}
-                                <div class="col-lg-10">
-                                    {{ customizeform.link(class="form-control", placeholder="") }}
-                                    {% for error in customizeform.link.errors %}
-                                        <span class="text-danger">{{ error }}</span>
-                                    {% endfor %}
+                                    <div class="col-lg-10">
+                                        {{ customizeform.link(class="form-control", placeholder="") }}
+                                        {% for error in customizeform.link.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
                                 </div>
-                            </div>
+                                {% endif %}
                                 </div>
 
                                 <button type="submit" class="btn btn-primary btn-flat m-b-30 m-t-30">Submit</button>
@@ -260,11 +282,21 @@
                     <div class="modal-content text-left">
                         <div class="modal-header">
                             <button aria-hidden="true" data-dismiss="modal" class="close" type="button"><i class="ti-close"></i></button>
-                            <h4 class="modal-title">Compaign Name</h4>
+                            <h4 class="modal-title">Add Item</h4>
                         </div>
                         <div class="modal-body">
                             <form action="{{ url_for('users.addcourse') }}" method="POST">
                                 {{ compainform.hidden_tag() }} <!-- Add CSRF token field for security -->
+                                <div class="form-group">
+
+                                    {{ compainform.type.label(class="col-lg-2 control-label") }}
+                                    <div class="col-lg-10">
+                                        {{ compainform.type(class="form-control", placeholder="") }}
+                                        {% for error in compainform.type.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                                 <div class="form-group">
 
                                     {{ compainform.name.label(class="col-lg-2 control-label") }}

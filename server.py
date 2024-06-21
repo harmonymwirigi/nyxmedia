@@ -12,20 +12,38 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 import stripe
-from sqlalchemy.exc import OperationalError
-from flask_migrate import Migrate  # Import Flask-Migrate
+import sshtunnel
+from flask_migrate import Migrate
+
+
 
 # Initialize the Flask app
 app = Flask(__name__)
 admin = Admin()
+
+migrate = Migrate(app, db)
+
+# Set up the SSH tunnel
+tunnel = sshtunnel.SSHTunnelForwarder(
+    ('ssh.pythonanywhere.com'), 
+    ssh_username='tonirodriguez',
+    ssh_password='QN&%Y4_TfVvd$&2',
+    remote_bind_address=('tonirodriguez.mysql.pythonanywhere-services.com', 3306)
+)
+
+# Start the SSH tunnel
+tunnel.start()
 
 # Ensure the instance folder exists
 os.makedirs(app.instance_path, exist_ok=True)
 
 # Configuration
 app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://tonirodriguez:Harmo36840568@tonirodriguez.mysql.pythonanywhere-services.com/tonirodriguez$course'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://tonirodriguez:Harmo36840568@127.0.0.1:{tunnel.local_bind_port}/tonirodriguez$course'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize CSRF Protection
+# csrf = CSRFProtect(app) # Uncomment if CSRF protection is needed
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -36,19 +54,9 @@ login_manager.init_app(app)
 def load_user(user_id):
     return Adminuser.query.filter_by(id=user_id).first()
 
-# Initialize Flask-Migrate
-migrate = Migrate(app, db)
-
 # Initialize Flask extensions within app context
 with app.app_context():
     db.init_app(app)
-    
-    # Ensure the connection is pre-pinged to prevent disconnections
-    engine = db.get_engine()
-    engine.dispose()  # Dispose of previous connections
-    engine.pool._use_threadlocal = True
-    engine.pool._pre_ping = True
-    
     db.create_all()  # Create database tables for our models
     
     admin.init_app(app)
@@ -74,15 +82,9 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Nyx Media startup')
 
-# Handle teardown and exceptions
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    db.session.remove()
-
-@app.errorhandler(OperationalError)
-def handle_db_error(error):
-    return "Database connection error. Please try again later.", 500
-
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    try:
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    finally:
+        tunnel.stop()

@@ -9,7 +9,6 @@ db = SQLAlchemy()
 
 class Adminuser(db.Model, Base):
     id = db.Column(db.Integer, primary_key=True)
-    openai_key = db.Column(db.String(500), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     username = db.Column(db.String(80),nullable=True)
     course = db.relationship('Course', backref='my_coure')
