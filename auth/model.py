@@ -14,7 +14,7 @@ class Adminuser(db.Model, Base):
     course = db.relationship('Course', backref='my_coure')
     template = db.relationship('EmailTemplate', backref='my_templates')
     password = db.Column(db.String(128), nullable=True)
-    
+
     def check_password(self, password):
         return check_password_hash(self.password, password)
 
@@ -35,6 +35,7 @@ class User(db.Model,Base):
     amount = db.Column(db.String(200), nullable=True)
     status = db.Column(db.Integer, nullable= True)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+    unsubsciption_reason = db.Column(db.String(2000), nullable=True)
 
 
     def check_password(self, password):

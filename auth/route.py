@@ -31,8 +31,8 @@ def send_email(recipient, subject, body):
     # Configure SMTP server settings
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
-    sender_email = 'harmonymwirigi99@gmail.com'
-    sender_password = 'dcqw whew eoyq gyki'
+    sender_email = 'nyxfundation@gmail.com'
+    sender_password = 'tcrj fnli dzeu cyxg'
 
     # Create a MIME multipart message
     message = MIMEMultipart()
@@ -116,16 +116,21 @@ def create_customer(email, stripe_api_key):
     )
     return customer.id
 
-def create_default_price_and_update_product(product_id, unit_amount, key):
+
+def create_and_update_recurring(product_id, unit_amount, key, course_id):
     try:
         # Initialize the Stripe API with your secret key
         stripe.api_key = key
 
-        # Create a new price
+        # Create a new recurring price
         new_price = stripe.Price.create(
             product=product_id,
             unit_amount=unit_amount,  # Amount in cents
             currency="usd",
+            recurring={"interval": "month"},  # Recurring interval
+            metadata ={'course_id': course_id}
+
+
         )
 
         # Update the product's default price
@@ -138,6 +143,74 @@ def create_default_price_and_update_product(product_id, unit_amount, key):
     except stripe.error.StripeError as e:
         print("Stripe Error:", e)
         return None
+
+def create_default_price_and_update_product(product_id, unit_amount, key,course_id):
+    try:
+        # Initialize the Stripe API with your secret key
+        stripe.api_key = key
+
+        # Create a new price
+        new_price = stripe.Price.create(
+            product=product_id,
+            unit_amount=unit_amount,  # Amount in cents
+            currency="usd",
+           metadata ={'course_id': course_id}
+        )
+
+        # Update the product's default price
+        stripe.Product.modify(
+            product_id,
+            default_price=new_price.id
+        )
+
+        return new_price.id  # Return the ID of the created price
+    except stripe.error.StripeError as e:
+        print("Stripe Error:", e)
+        return None
+
+def subscriptioncheckout(course_id, created_price_id, customer, success_url, stripe_api_key, quantity=1):
+    stripe.api_key = stripe_api_key
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='subscription',
+            metadata ={'course_id': course_id},
+            customer=customer,
+            line_items=[{
+                'price': created_price_id,
+                'quantity': quantity,
+            }],
+            subscription_data={
+                'metadata': {
+                    'course_id': course_id
+                }
+            },
+
+            success_url=success_url,
+            cancel_url=success_url,  # Replace with your actual cancel URL if different
+        )
+
+        # Print the entire session object for debugging
+        print("Session object:", session)
+
+        # Check if the subscription ID is available
+        subscription_id = session.subscription
+        if subscription_id:
+            print("Subscription Id:", subscription_id)
+        else:
+            print("Subscription ID not found in session. Please check your configuration.")
+
+        return session.url
+    except stripe.error.StripeError as e:
+        # Handle Stripe API errors
+        print(f"Stripe error: {e.user_message}")
+        return None
+    except Exception as e:
+        # Handle other possible errors
+        print(f"Error: {e}")
+        return None
+
+
 def create_checkout_session(course_id, created_price_id, customer, success_url, stripe_api_key, quantity=1):
     stripe.api_key = stripe_api_key
     try:
@@ -145,6 +218,7 @@ def create_checkout_session(course_id, created_price_id, customer, success_url, 
             payment_intent_data={'metadata': {'course_id': course_id}},
             success_url=success_url,
             mode='payment',
+            metadata ={'course_id': course_id},
             payment_method_types=['card'],
             customer=customer,
             line_items=[{
@@ -152,6 +226,7 @@ def create_checkout_session(course_id, created_price_id, customer, success_url, 
                 'quantity': quantity,
             }]
         )
+
         return session.url
     except Exception as e:
         print(f"Error creating Checkout Session: {e}")
@@ -226,8 +301,13 @@ def handle_webhook():
     elif event['type'] == 'payment_intent.succeeded':
         session = event['data']['object']
         handle_payment_intent_succeeded(session)
+    elif event['type'] == 'customer.subscription.updated':
+        session = event['data']['object']
+        handle_subscription_updated(session)
     else:
         print(f"Unhandled event type {event['type']}")
+
+
 
     return '', 200
 
@@ -237,6 +317,29 @@ def handle_checkout_session(session):
     # Implement your logic to handle the checkout session
     print(f"Checkout session completed: {session}")
     # For example, update user status, send email, etc.
+
+def handle_subscription_updated(session):
+    subscription_id = session['id']
+    customer_id = session['customer']
+    amount = 0
+
+    if 'items' in session and 'data' in session['items']:
+        for item in session['items']['data']:
+            if 'price' in item and 'unit_amount' in item['price']:
+                amount += item['price']['unit_amount']
+
+    try:
+        payment = User.query.filter_by(customer_id = customer_id).first()
+        course = Course.query.filter_by(id=payment.course_id).first()
+        if payment:
+            payment.payment_intent_id = subscription_id
+            payment.status = 2
+            payment.amount = amount/100
+            db.session.commit()
+    except Exception as e:
+        # Handle database update error
+        print("Database update error:", e)
+
 
 def handle_payment_intent_succeeded(payment_intent):
     # Extract necessary information from payment_intent
@@ -259,8 +362,50 @@ def handle_payment_intent_succeeded(payment_intent):
         # Handle database update error
         print("Database update error:", e)
 
+def unsubscribe_user(key, subscription_id):
+    """
+    Cancels a subscription using Stripe API.
 
+    Args:
+    - key (str): Stripe API key.
+    - subscription_id (str): ID of the subscription to cancel.
 
+    Returns:
+    - bool: True if cancellation was successful, False otherwise.
+    """
+    try:
+        stripe.api_key = key
+        stripe.Subscription.delete(subscription_id)
+        return True
+    except stripe.error.StripeError as e:
+        # Handle specific Stripe errors as needed
+        print(f"Stripe error: {e}")
+        return False
+    except Exception as e:
+        # Handle other exceptions
+        print(f"Error: {e}")
+        return False
+
+@auth_bp.route("/confirm")
+def confirm():
+
+    return render_template("unsubscribe.html")
+
+@auth_bp.route("/unsubscribe/<user>/<campaign>", methods=['POST','GET'])
+def unsubscribe(user,campaign):
+    user_id = user
+    if request.method == 'POST':
+        user = User.query.filter_by(id=user_id, course_id = campaign).first()
+        course = Course.query.filter_by(id=campaign).first()
+        subscription_id = user.payment_intent_id
+        key = course.stripe_api_key
+
+        unsubscribe_user(key, subscription_id)
+
+        user.status = 1
+        db.session.commit()
+        return redirect(url_for('auth.confirm'))
+    return render_template('unsubscribe_confirm.html', user_id =user_id,campaign = campaign  )
 
 
 @auth_bp.route("/termsandconditions")
@@ -322,7 +467,7 @@ def register(code):
 
     if form.validate_on_submit():
         # Check if the email is already registered in this campaign
-        existing_user = User.query.filter_by(email=form.email.data, course_id=course.id).first()
+        existing_user = User.query.filter_by(email=form.email.data, course_id=course.id, status =2).first()
         if existing_user:
             return redirect(url_for('auth.error', type=1))
 
@@ -331,7 +476,10 @@ def register(code):
             print("Creating Stripe customer...")
             created_customer = create_customer(form.email.data, key)
 
-            created_price_id = create_default_price_and_update_product(product, amount, key)
+            if course.type == 1:
+                created_price_id = create_and_update_recurring(product, amount, key,course.id)
+            else:
+                created_price_id = create_default_price_and_update_product(product, amount, key,course.id)
 
             # Create a Payment Intent
 
@@ -341,7 +489,10 @@ def register(code):
 
             # Create a Checkout Session
             print("Creating Checkout Session...")
-            checkout_session_url = create_checkout_session(course.id, created_price_id, created_customer, success_url, key, quantity=1)
+            if course.type == 1:
+                checkout_session_url = subscriptioncheckout(course.id, created_price_id, created_customer, success_url, key, quantity=1)
+            else:
+                checkout_session_url = create_checkout_session(course.id, created_price_id, created_customer, success_url, key, quantity=1)
             if not checkout_session_url:
                 print("Failed to create Checkout Session")
                 return redirect(url_for('auth.error', type=3))

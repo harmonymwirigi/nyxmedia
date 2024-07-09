@@ -12,7 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
-from openai import OpenAI
+import openai
 
 user_bp = Blueprint('users', __name__)
 
@@ -145,19 +145,19 @@ def generate_email_body():
     # Provide your OpenAI API key here
     api_key = current_user.openai_key
 
-    client = OpenAI(api_key=api_key)
+    openai.api_key = api_key
 
     # Fetch email template from your database based on the template ID
     # Replace this with your actual database retrieval logic
     email_template = retrieve_email_template_from_database(template_id)
     # Construct prompt for OpenAI API instructing to generate an email with specific parts
     prompt = f"Generate an email with the following parts:\n\nHeader: {email_template.header}\n\nBody: {email_template.body}\n\nFooter: {email_template.footer}"
-    completion = client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens = 2400,
-            temperature = 1
-        )
+    completion = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=messages,
+                        max_tokens=10000,
+                        temperature=1
+                    )
     response_text = completion.choices[0].text
 
 

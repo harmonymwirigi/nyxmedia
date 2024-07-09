@@ -97,7 +97,7 @@
         </div>
         <div class="inbox-body text-center">
             {% if this_campaign.type == 1%}
-            {% if check_key == None  %}
+            {% if this_campaign.price is none and this_campaign.openai_key is none  %}
             <p class="text-white">Kindly Configure Your Open API Key to conposes email template</p>
 
             {% else %}
@@ -167,19 +167,20 @@
                         <div class="modal-body">
                             <form action="{{ url_for('courses.config', id=compaign_id) }}" method="POST">
                                 {{ keyform.hidden_tag() }} <!-- Add CSRF token field for security -->
-                                <div class="form-group">
-                                    {{ keyform.key.label(class="col-lg-2 control-label") }}
-                                    <div class="col-lg-10">
-                                        {{ keyform.key(class="form-control", placeholder="") }}
-                                        {% for error in keyform.key.errors %}
-                                            <span class="text-danger">{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
+                               <div class="form-group">
+                                {{ keyform.key.label(class="col-lg-2 control-label") }}
+                                <div class="col-lg-10">
+                                    {{ keyform.key(class="form-control", placeholder="", value=this_campaign.stripe_api_key if this_campaign.stripe_api_key is not none else '') }}
+                                    {% for error in keyform.key.errors %}
+                                        <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
                                 </div>
+                                </div>
+
                                 <div class="form-group">
                                     {{ keyform.product_id.label(class="col-lg-2 control-label") }}
                                     <div class="col-lg-10">
-                                        {{ keyform.product_id(class="form-control", placeholder="") }}
+                                        {{ keyform.product_id(class="form-control", placeholder="" , value=this_campaign.product_id if this_campaign.product_id is not none else '') }}
                                         {% for error in keyform.product_id.errors %}
                                             <span class="text-danger">{{ error }}</span>
                                         {% endfor %}
@@ -188,7 +189,7 @@
                                 <div class="form-group">
                                     {{ keyform.endpoint_secret.label(class="col-lg-2 control-label") }}
                                     <div class="col-lg-10">
-                                        {{ keyform.endpoint_secret(class="form-control", placeholder="") }}
+                                        {{ keyform.endpoint_secret(class="form-control", placeholder="", value=this_campaign.endpoint_secret if this_campaign.endpoint_secret is not none else '') }}
                                         {% for error in keyform.endpoint_secret.errors %}
                                             <span class="text-danger">{{ error }}</span>
                                         {% endfor %}
@@ -198,7 +199,7 @@
                                 <div class="form-group">
                                     {{ keyform.openai_key.label(class="col-lg-2 control-label") }}
                                     <div class="col-lg-10">
-                                        {{ keyform.openai_key(class="form-control", placeholder="") }}
+                                        {{ keyform.openai_key(class="form-control", placeholder="", value=this_campaign.openai_key if this_campaign.openai_key is not none else '') }}
                                         {% for error in keyform.openai_key.errors %}
                                             <span class="text-danger">{{ error }}</span>
                                         {% endfor %}
@@ -320,6 +321,7 @@
             <!-- end adding Compaign -->
         </div>
         <ul class="inbox-nav inbox-divider">
+            {% if this_campaign.type == 1%}
             <li class="active">
                 <a href="{{ url_for('courses.dashboard', course=compaign_id) }}"><i class="fa fa-inbox"></i> Templates Created <span class="badge badge-success pull-right m-t-12">
 
@@ -332,6 +334,7 @@
     {% endif %}
                 </span></a>
             </li>
+            {% endif %}
             <li class="active">
                 <a href="{{ url_for('courses.users', id=compaign_id) }}"  ><i class="fa fa-envelope-o"></i> Subscribed users
                     <span class="badge badge-success pull-right m-t-12">

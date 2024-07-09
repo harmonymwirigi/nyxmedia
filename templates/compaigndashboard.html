@@ -12,7 +12,14 @@
                                             {% block content %}
                                             <aside class="lg-side">
                                                 <div class="inbox-head">
-                                                    <a href="http://127.0.0.1:5000/auth/register/{{url}}" target="_blank">https://nyxmedia-tonirodriguez.pythonanywhere.com//auth/register/{{url}} </a>
+                                                    {% if this_campaign.price is none and this_campaign.openai_key is none %}
+                                                        <p class="text-warning">The link will appear after customization</p>
+                                                    {% else %}
+                                                        <a href="https://daily-nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{ url }}" target="_blank">
+                                                            https://nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{ url }}
+                                                        </a>
+                                                    {% endif %}
+
                                                     <form action="#" class="pull-right position">
 
                                                         <div class="input-append inner-append">
@@ -32,6 +39,7 @@
 
                                                 </div>
                                                 <div class="table-responsive">
+                                                    {% if this_campaign.type == 1%}
                                                     <table class="table table-inbox table-hover table-responsive">
                                                         <tr class="unread">
 
@@ -47,16 +55,17 @@
                                                                 <td class="view-message">{{ email_template.body }}</td>
                                                                 <td class="view-message dont-show">{{ email_template.footer }}</td>
                                                                 <td class="view-message dont-show">
-                                                                    <form  method="post" action="{{ url_for('courses.generate_email_body', compaign=compaign_id) }}">
+                                                                    <form  method="post" action="{{ url_for('courses.delete_compain', compaign=compaign_id) }}">
                                                                         {{ tempform.hidden_tag() }}
                                                                         <input type="hidden" name="template_id" value="{{ email_template.id }}">
-                                                                        <button type="submit" class="btn btn-success">Generate Email</button>
+                                                                        <button type="submit" class="btn btn-success">Delete Template</button>
                                                                     </form>
                                                                 </td>
                                                             </tr>
                                                             {% endfor %}
                                                         </tbody>
                                                     </table>
+                                                    {% endif %}
                                                 </div>
 
                                             </aside>

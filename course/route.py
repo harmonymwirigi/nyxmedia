@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
-from openai import OpenAI
+import openai
 
 courses = Blueprint('courses', __name__)
 def retrieve_email_template_from_database(template_id):
@@ -19,7 +19,7 @@ def retrieve_email_template_from_database(template_id):
     email_template = EmailTemplate.query.filter_by(id=template_id).first()
     return email_template
 
-def send_email(recipient, subject, body):
+def send_email(recipient, subject, body, user, campaign):
     # Configure SMTP server settings
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
@@ -31,6 +31,8 @@ def send_email(recipient, subject, body):
     message['From'] = sender_email
     message['To'] = recipient
     message['Subject'] = subject
+    campaign = campaign
+    user = user
 
     # Define the HTML content of the email
     image_url = 'https://nyxmedia-tonirodriguez.pythonanywhere.com/static/images/nyx_logo.jpeg'
@@ -74,7 +76,7 @@ def send_email(recipient, subject, body):
     <body>
         <div class="email-container">
             <div class="header">
-               nyxmedia news! 
+               nyxmedia news!
             </div>
             <img src="{image_url}" alt="Logo" height="100" width="100">
             <br>
@@ -83,7 +85,9 @@ def send_email(recipient, subject, body):
             Es un placer saludarle, desde Nyx esperamos que disfrute de su compra, clique en el siguiente enlace para ver el contenido:
             <br>
             {body}
+            <a href="https://daily-nyxmedia-tonirodriguez.pythonanywhere.com/auth/unsubscribe/{user}/{campaign}">Unsubscribe</a>
             <div class="footer">
+
                 <p class="footer-content">&copy; 2024 nyxmedia/payments. All rights reserved.</p>
             </div>
         </div>
@@ -229,6 +233,19 @@ def config(id):
         db.session.commit()  # Save the changes to t
         return redirect(url_for('courses.dashboard', course = id))
 
+@courses.route('/delete_compain/<compaign>', methods=['POST'])
+@login_required
+def delete_compain(compaign):
+    template_id = int(request.form.get('template_id'))  # Convert to integer
+    email_template = EmailTemplate.query.filter_by(id=template_id).first()
+    campaign = Course.query.filter_by(id = compaign).first()
+    # delete campaign
+    db.session.delete(email_template)
+    db.session.commit()
+
+    return redirect(url_for('courses.dashboard',course = campaign.id))
+
+
 # dcqw whew eoyq gyki
 @courses.route('/generate_email_body/<compaign>', methods=['POST'])
 @login_required
@@ -239,28 +256,28 @@ def generate_email_body(compaign):
     # Provide your OpenAI API key here
     api_key = compain.openai_key
 
-    client = OpenAI(api_key=api_key)
+    openai.api_key = api_key
 
     # Fetch email template from your database based on the template ID
     # Replace this with your actual database retrieval logic
     email_template = retrieve_email_template_from_database(template_id)
     # Construct prompt for OpenAI API instructing to generate an email with specific parts
     prompt = f"Generate an email with the following parts:\n\nHeader: {email_template.header}\n\nBody: {email_template.body}\n\nFooter: {email_template.footer}. My company name is nyx media no social media at the moment also don't insert any name"
-    completion = client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens = 2400,
-            temperature = 1
-        )
+    completion = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=messages,
+                        max_tokens=10000,
+                        temperature=1
+                    )
     response_text = completion.choices[0].text
 
 
    # Fetch users from the database whose status is 2
-    users = User.query.filter_by(status=2).all()
+    users = User.query.filter_by(status=2, course_id = compaign).all()
 
     # Send the generated email to each user
     for user in users:
-        send_email(user.email, email_template.header, response_text)
+        send_email(user.email, email_template.header, response_text, user.id, compain.id)
 
     # Flash a success message
     flash("Emails sent successfully", "success")

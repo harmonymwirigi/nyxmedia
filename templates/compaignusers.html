@@ -12,7 +12,13 @@
                                             {% block content %}
                                             <aside class="lg-side">
                                                 <div class="inbox-head">
-                                                    <a href="http://127.0.0.1:5000/auth/register/{{url}}" target="_blank">https://nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{url}} </a>
+                                                    {% if this_campaign.price is none and this_campaign.openai_key is none %}
+                                                        <p class="text-warning">The link will appear after customization</p>
+                                                    {% else %}
+                                                        <a href="https://daily-nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{ url }}" target="_blank">
+                                                            https://nyxmedia-tonirodriguez.pythonanywhere.com/auth/register/{{ url }}
+                                                        </a>
+                                                    {% endif %}
                                                     <form action="#" class="pull-right position">
                                                         <div class="input-append inner-append">
                                                             <input type="text" class="sr-input" placeholder="Search Mail">
